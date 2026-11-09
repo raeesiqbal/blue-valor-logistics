@@ -1,0 +1,213 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Playfair+Display:ital,wght@1,600&display=swap');
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-action: #326f9f;
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card-border: hsl(var(--card-border));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-popover-border: hsl(var(--popover-border));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-border: var(--primary-border);
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-secondary-border: var(--secondary-border);
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-muted-border: var(--muted-border);
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent-border: var(--accent-border);
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-destructive-border: var(--destructive-border);
+
+  --font-sans: 'DM Sans', sans-serif;
+  --font-display: 'Oswald', sans-serif;
+  --font-script: 'Playfair Display', serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --brand-blue: 206.71875 52.03252% 48.235294%;
+  --brand-light-blue: 194.516129 65.263158% 62.745098%;
+  --capacity-amber: 38 78% 52%;
+  /* Warm neutral canvas paired with the exact Blue Valor brand blues. */
+  --background: 38 28% 95%;
+  --foreground: 216 33% 8%;
+  
+  --border: 210 16% 82%;
+  --input: 210 16% 82%;
+  --ring: 207 53% 48%;
+
+  --card: 38 28% 95%;
+  --card-foreground: 216 33% 8%;
+  --card-border: 210 16% 82%;
+
+  --popover: 38 28% 95%;
+  --popover-foreground: 216 33% 8%;
+  --popover-border: 210 16% 82%;
+
+  /* #3b82bb */
+  --primary: var(--brand-blue);
+  --primary-foreground: 216 33% 8%;
+  --primary-border: 207 53% 40%;
+
+  --secondary: 216 28% 10%;
+  --secondary-foreground: 38 28% 95%;
+  --secondary-border: 216 20% 24%;
+
+  --muted: 210 22% 89%;
+  --muted-foreground: 216 19% 32%;
+  --muted-border: 210 16% 82%;
+
+  /* #62c0de */
+  --accent: var(--brand-light-blue);
+  --accent-foreground: 216 33% 8%;
+  --accent-border: 195 63% 48%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --radius: 0.25rem;
+}
+
+.dark {
+  --capacity-amber: 38 78% 58%;
+  --background: 216 33% 8%;
+  --foreground: 38 28% 95%;
+
+  --border: 216 20% 24%;
+  --input: 216 20% 24%;
+  --ring: 207 53% 58%;
+
+  --card: 216 28% 10%;
+  --card-foreground: 38 28% 95%;
+  --card-border: 216 20% 24%;
+
+  --popover: 216 28% 10%;
+  --popover-foreground: 38 28% 95%;
+  --popover-border: 216 20% 24%;
+
+  --primary: var(--brand-blue);
+  --primary-foreground: 216 33% 8%;
+  --primary-border: 207 53% 64%;
+
+  --secondary: 38 28% 95%;
+  --secondary-foreground: 216 33% 8%;
+  --secondary-border: 210 16% 82%;
+
+  --muted: 216 20% 17%;
+  --muted-foreground: 216 10% 74%;
+  --muted-border: 216 20% 24%;
+
+  --accent: var(--brand-light-blue);
+  --accent-foreground: 216 33% 8%;
+  --accent-border: 195 63% 68%;
+
+  --destructive: 0 62% 30%;
+  --destructive-foreground: 0 0% 100%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-script {
+  font-family: var(--font-script);
+}
+
+/* Animations for Splash */
+@keyframes drawGrille {
+  0% { stroke-dashoffset: 1000; opacity: 0; }
+  50% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+
+.splash-grille path {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: drawGrille 1.5s ease-out forwards;
+}
+
+@keyframes sweep {
+  0% { transform: translateX(-100%) skewX(-15deg); }
+  100% { transform: translateX(200%) skewX(-15deg); }
+}
+
+.glint-effect {
+  position: relative;
+  overflow: hidden;
+}
+.glint-effect::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.4), transparent);
+  animation: sweep 2s infinite;
+}
+
+/* Abstract Node Pulse */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0px hsl(var(--accent)); opacity: 0.6; }
+  50% { box-shadow: 0 0 15px hsl(var(--accent)); opacity: 1; }
+}
+.node-pulse {
+  animation: pulseGlow 3s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .splash-grille path,
+  .glint-effect::after,
+  .node-pulse {
+    animation: none !important;
+  }
+}

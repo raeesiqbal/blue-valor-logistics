@@ -1,0 +1,137 @@
+kind = "web"
+previewPath = "/"
+title = "Blue Valor Logistics"
+version = "1.0.0"
+id = "artifacts/blue-kool"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22293
+
+[services.development]
+run = "pnpm --filter @workspace/blue-kool run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/blue-kool", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/blue-kool/dist/public"
+
+[[services.production.rewrites]]
+from = "/services"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/services/"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/shippers/admin"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/shippers/admin/"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/shippers"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/shippers/"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/carriers"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/carriers/"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/about"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/about/"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/contact"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/contact/"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/quote"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/quote/"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/privacy-policy"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/privacy-policy/"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/terms"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/terms/"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/banner-preview"
+to = "/banner-preview.html"
+
+[[services.production.rewrites]]
+from = "/banner-preview/"
+to = "/banner-preview.html"
+
+
+[[services.production.rewrites]]
+from = "/services/refrigerated-freight"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/services/refrigerated-freight/"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/services/dry-van-freight"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/services/dry-van-freight/"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/services/flatbed-freight"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/services/flatbed-freight/"
+to = "/index.html"
+
+
+[[services.production.rewrites]]
+from = "/map-preview"
+to = "/map-preview.html"
+
+[[services.production.rewrites]]
+from = "/map-preview/"
+to = "/map-preview.html"
+
+[services.env]
+PORT = "22293"
+BASE_PATH = "/"

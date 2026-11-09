@@ -1,0 +1,17 @@
+.home-hero-copy {
+  position: relative;
+  top: -96px;
+  left: clamp(-50px, -3vw, -24px);
+}
+
+.home-hero-headline {
+  display: inline-block;
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .home-hero-copy {
+    left: -8px;
+  }
+
+}

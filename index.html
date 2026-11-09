@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>Home | Blue Valor Logistics</title>
+    <meta name="description" content="Blue Valor Logistics is a hands-on Florida freight brokerage connecting shippers and carriers with reliable, personal service." />
+    <meta name="robots" content="index, follow" />
+    <meta property="og:title" content="Blue Valor Logistics" />
+    <meta property="og:description" content="A hands-on Florida freight brokerage connecting shippers and carriers with reliable, personal service." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Blue Valor Logistics" />
+    <meta name="twitter:description" content="A hands-on Florida freight brokerage connecting shippers and carriers with reliable, personal service." />
+    <link rel="icon" type="image/x-icon" sizes="16x16 32x32" href="%BASE_URL%favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="%BASE_URL%favicon-32x32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="%BASE_URL%android-chrome-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="%BASE_URL%android-chrome-512x512.png" />
+    <script>
+      // Start the current route's banner request before the application bundle loads.
+      (() => {
+        const base = '%BASE_URL%';
+        const banners = {
+          '/': 'hero-home.webp', '/services': 'hero-services.webp',
+          '/services/refrigerated-freight': 'hero-reefer.webp',
+          '/services/dry-van-freight': 'hero-dryvan.webp',
+          '/services/flatbed-freight': 'hero-flatbed.webp',
+          '/shippers': 'shipper-video-poster.webp',
+          '/carriers': 'carrier-video-poster.webp',
+          '/contact': 'hero-contact.webp', '/quote': 'hero-quote.webp'
+        };
+        const preload = path => {
+          const clean = path.split(/[?#]/)[0].replace(/\/$/, '') || '/';
+          let link = document.getElementById('hero-preload');
+          const file = banners[clean];
+          if (!file) { if (link) link.remove(); return; }
+          if (!link) {
+            link = document.createElement('link');
+            link.id = 'hero-preload';
+            link.rel = 'preload';
+            link.as = 'image';
+            link.type = 'image/webp';
+            link.setAttribute('fetchpriority', 'high');
+          }
+          link.href = base + file;
+          if (!link.isConnected) document.head.appendChild(link);
+        };
+        const prefix = base.replace(/\/$/, '');
+        preload(window.location.pathname.slice(prefix.length));
+        window.addEventListener('blue-valor-page-route', event => preload(event.detail));
+      })();
+    </script>
+  </head>
+  <body data-clarity-mask="True">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
