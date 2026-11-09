@@ -1,286 +1,218 @@
-import { useEffect, useRef, useState } from 'react';
-import { useI18n } from '../lib/i18n';
-import { getMapFrame } from '../lib/map-preview-options';
+import {useEffect,useRef,useState} from 'react';
+import {useI18n} from '../lib/i18n';
+import {getMapFrame} from '../lib/map-preview-options';
+import {ARTWORK_HEIGHT,ARTWORK_WIDTH,FREIGHT_ROADS,LANE_OFFSET,SPEED,sample,canDispatch,type Lane,type Trip} from './freightRoutes';
+import './AnimatedBeam.css';
 
-/*
- * ══════════════════════════════════════════════════════════════════
- * ROUTE NETWORK — traced from user's marked-up reference image
- * (attached_assets/image_1784289460425.png)
- *
- * Coordinate mapping (1024×617 reference image → SVG viewBox 0 0 1200 600,
- * accounting for bg-cover crop at 1920px: visible SVG y ≈ 106–494):
- *   SVG_x = ref_x × 1.172
- *   SVG_y = 106.25 + ref_y × 0.628
- *
- * ENTRY/EXIT points (orange dots, extended ~40u past visible edge so
- * trucks enter/leave fully off-screen):
- *   E1 top-left-ctr (297,75)   E2 left-upper (-40,140)  E3 top-ctr (668,70)
- *   E4 top-ctr-rt   (733,70)   E5 top-right  (1090,70)  E6 left-mid (-40,268)
- *   E7 right-mid  (1240,332)   E8 bottom-lctr (500,530) E9 bottom-ctr (698,530)
- *
- * HUB points (white dots — trucks FADE OUT on arrival):
- *   H1 center (527,331)   H2 lower-ctr (671,430)
- *   H3 lower-rt (911,409) H4 bottom-rt (1015,478)
- *
- * Trucks are NOT locked to one road: each truck is randomly assigned a
- * route; on completion it respawns on another random unused route.
- * Speed is constant (~28 svg-units/s ⇒ ≈18–21 s for the long routes).
- * ══════════════════════════════════════════════════════════════════
- */
+const COLORS=['#ef4444','#22c55e','#a855f7','#eab308','#3b82f6'];
+const PASS_SPEED=24;
+const PASS_BEGIN=125;
+const PASS_FULL=42;
+const PASSABLE_OFFSET=5;
+const CURVE_MIN_SPEED=22;
+const SMOOTHING_PASSES=6;
 
-type Route = { id: string; d: string; hub: boolean };
+type MovingTrip=Trip&{distance:number;speed:number;offset:number};
+type TruckState={trip:MovingTrip|null;visits:number[];retry:number;last:number};
 
-const ROUTES: Route[] = [
-  // ── BLUE left S-curve · E1 ⇄ E8 ──
-  { id: 'blue-left-s', hub: false, d: 'M 297,75 C 290,115 265,170 235,210 C 215,237 205,250 210,270 C 218,300 260,325 320,355 C 380,385 440,415 468,445 C 485,465 495,495 500,530' },
-  { id: 'blue-left-n', hub: false, d: 'M 500,530 C 495,495 485,465 468,445 C 440,415 380,385 320,355 C 260,325 218,300 210,270 C 205,250 215,237 235,210 C 265,170 290,115 297,75' },
-  // ── PURPLE upper-left diagonal · E1 ⇄ E6 ──
-  { id: 'purple-left-w', hub: false, d: 'M 297,75 C 293,100 285,125 268,145 C 235,183 180,210 120,235 C 75,252 30,262 -40,268' },
-  { id: 'purple-left-e', hub: false, d: 'M -40,268 C 30,262 75,252 120,235 C 180,210 235,183 268,145 C 285,125 293,100 297,75' },
-  // ── RED left sweep · E2 ⇄ E8 ──
-  { id: 'red-left-se', hub: false, d: 'M -40,140 C -10,145 30,155 70,172 C 150,205 230,255 310,305 C 380,348 440,390 470,430 C 488,455 496,490 500,530' },
-  { id: 'red-left-nw', hub: false, d: 'M 500,530 C 496,490 488,455 470,430 C 440,390 380,348 310,305 C 230,255 150,205 70,172 C 30,155 -10,145 -40,140' },
-  // ── YELLOW center drop · E3 → H1 (hub: fade) ──
-  { id: 'yellow-hub1', hub: true, d: 'M 668,70 C 662,95 650,125 630,150 C 605,180 570,200 548,225 C 532,243 527,265 527,290 C 527,307 527,320 527,331' },
-  // ── GREEN hook: down east vertical, west along y=241, south to hub · E4 → H1 (hub: fade) ──
-  { id: 'green-hook-hub1', hub: true, d: 'M 733,70 C 742,85 752,100 765,118 C 785,145 805,160 809,190 C 811,208 812,222 805,232 C 798,241 780,241 755,241 C 690,241 610,241 565,241 C 545,241 533,250 529,268 C 526,285 527,310 527,331' },
-  // ── GREEN upper-right hook · E5 ⇄ E7 ──
-  { id: 'green-right-se', hub: false, d: 'M 1090,70 C 1080,90 1060,120 1030,150 C 990,190 955,205 950,235 C 947,258 975,262 1020,272 C 1080,285 1140,300 1240,332' },
-  { id: 'green-right-nw', hub: false, d: 'M 1240,332 C 1140,300 1080,285 1020,272 C 975,262 947,258 950,235 C 955,205 990,190 1030,150 C 1060,120 1080,90 1090,70' },
-  // ── RED right S-curve · E4 ⇄ E9 ──
-  { id: 'red-right-s', hub: false, d: 'M 733,70 C 738,95 755,130 772,170 C 795,225 815,260 818,300 C 820,335 800,370 770,400 C 740,430 715,450 705,475 C 698,495 698,512 698,530' },
-  { id: 'red-right-n', hub: false, d: 'M 698,530 C 698,512 698,495 705,475 C 715,450 740,430 770,400 C 800,370 820,335 818,300 C 815,260 795,225 772,170 C 755,130 738,95 733,70' },
-  // ── BLUE right diagonal · E4 → E7 ──
-  { id: 'blue-right-diag', hub: false, d: 'M 733,70 C 745,95 765,125 795,155 C 850,208 910,240 975,262 C 1050,287 1130,305 1240,332' },
-  // ── RED branch off right S-curve to lower-right hub · E4 → H3 (hub: fade) ──
-  { id: 'red-branch-hub3', hub: true, d: 'M 733,70 C 738,95 755,130 772,170 C 792,215 810,250 822,285 C 838,330 865,365 890,390 C 900,400 908,405 911,409' },
-  // ── PURPLE lower-right river road · E7 → H4 (hub: fade) ──
-  { id: 'purple-hub4', hub: true, d: 'M 1240,332 C 1180,325 1120,340 1075,362 C 1040,380 1015,405 1005,432 C 1000,450 1008,465 1015,478' },
-  // ── Bottom arm up to lower-center hub · E8 → H2 (hub: fade) ──
-  { id: 'bottom-arm-hub2', hub: true, d: 'M 500,530 C 498,512 500,495 515,482 C 540,460 590,447 630,438 C 650,434 663,432 671,430' },
-];
+const approach=(value:number,target:number,step:number)=>value<target?Math.min(target,value+step):Math.max(target,value-step);
+const angleDelta=(a:number,b:number)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
+const passingWeight=(gap:number)=>{
+ const t=Math.max(0,Math.min(1,(PASS_BEGIN-gap)/(PASS_BEGIN-PASS_FULL)));
+ return t*t*(3-2*t);
+};
 
-const SPEED = 28;      // svg units / second — steady highway cruise (≈18–21 s on long routes)
-const MIN_DUR = 7;     // s — floor so short hub arms don't flash by
-const FADE_OUT = 1.2;  // s — smooth fade at hub arrival
-const FADE_IN = 0.4;   // s — soft entry (paths already start off-screen)
+export function AnimatedBeam({height,framing='cover',zoom=1}:{height?:number;framing?:'stretch'|'cover';zoom?:number}={}){
+ const {t}=useI18n();
+ const svgRef=useRef<SVGSVGElement>(null);
+ const sectionRef=useRef<HTMLElement>(null);
+ const [mapSize,setMapSize]=useState({width:ARTWORK_WIDTH,height:height??807});
+ const debug=import.meta.env.DEV&&new URLSearchParams(window.location.search).has('freightDebug');
 
-const TRUCKS = [
-  { id: 'r', fill: '#EF4444', dark: '#991B1B' },
-  { id: 'g', fill: '#22C55E', dark: '#14532D' },
-  { id: 'p', fill: '#A855F7', dark: '#581C87' },
-  { id: 'y', fill: '#EAB308', dark: '#78350F' },
-] as const;
+ useEffect(()=>{
+  const section=sectionRef.current;if(!section)return;
+  const observer=new ResizeObserver(([entry])=>setMapSize({width:entry.contentRect.width,height:entry.contentRect.height}));
+  observer.observe(section);return()=>observer.disconnect();
+ },[]);
 
-// Shared truck silhouette — side-profile semi-truck built from rects.
-// origin (0,0) = truck centre; rotation keeps it tangent to the road.
-const TruckBody = ({ fill, dark, win }: { fill: string; dark: string; win: string }) => (
-  <>
-    {/* trailer */}
-    <rect x="-18" y="-5.5" width="19" height="11" rx="1.5" fill={fill} />
-    {/* cab */}
-    <rect x="1" y="-5.5" width="13" height="11" rx="2" fill={fill} />
-    {/* windshield */}
-    <rect x="11" y="-4" width="3" height="8" rx="0.5" fill={win} />
-    {/* cab shadow */}
-    <rect x="1" y="-3.5" width="3" height="7" rx="0.5" fill="rgba(0,0,0,0.15)" />
-    {/* trailer wheels */}
-    <rect x="-16" y="5.5" width="5" height="2.5" rx="1" fill={dark} />
-    <rect x="-9" y="5.5" width="5" height="2.5" rx="1" fill={dark} />
-    {/* cab wheels */}
-    <rect x="3" y="5.5" width="4" height="2.5" rx="1" fill={dark} />
-    {/* mirrored top wheels */}
-    <rect x="-16" y="-8" width="5" height="2.5" rx="1" fill={dark} />
-    <rect x="-9" y="-8" width="5" height="2.5" rx="1" fill={dark} />
-    <rect x="3" y="-8" width="4" height="2.5" rx="1" fill={dark} />
-  </>
-);
+ useEffect(()=>{
+  const svg=svgRef.current!;
+  const lanes:Lane[]=[];
 
-export function AnimatedBeam({ height = 1050, framing = 'stretch', zoom = 1 }: {
-  height?: number;
-  framing?: 'stretch' | 'cover';
-  zoom?: number;
-} = {}) {
-  const { t } = useI18n();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [mapSize, setMapSize] = useState({ width: 1200, height });
-  const pathRefs = useRef<(SVGPathElement | null)[]>([]);
-  const truckRefs = useRef<(SVGGElement | null)[]>([]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    const observer = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect;
-      // Fit the complete map frame to the section. The raster and route SVG
-      // share this exact frame so the animated trucks stay registered to roads.
-      setMapSize({ width, height });
+  svg.querySelectorAll<SVGPathElement>('[data-road]').forEach((path,index)=>{
+   const road=FREIGHT_ROADS[index],length=path.getTotalLength(),count=Math.ceil(length/1.5);
+   for(const reverse of [false,true]){
+    const directionalStartTerminal=reverse?!!road.terminalEnd:!!road.terminalStart;
+    const directionalEndTerminal=reverse?!!road.terminalStart:!!road.terminalEnd;
+    const raw=Array.from({length:count+1},(_,i)=>{
+     const distance=(reverse?1-i/count:i/count)*length;
+     const p=path.getPointAtLength(distance),a=path.getPointAtLength(Math.max(0,distance-3)),b=path.getPointAtLength(Math.min(length,distance+3));
+     return {x:p.x,y:p.y,angle:Math.atan2(b.y-a.y,b.x-a.x)+(reverse?Math.PI:0)};
     });
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
 
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const lens = ROUTES.map((_, i) => {
-      try {
-        return pathRefs.current[i]?.getTotalLength() ?? 0;
-      } catch {
-        return 0;
-      }
-    });
-    if (lens.every(l => l === 0)) return; // paths not measurable — bail
-
-    type TruckState = { route: number; dur: number; t0: number; phase: 'drive' | 'wait' };
-
-    const pickRoute = (exclude: number[]): number => {
-      const avail = ROUTES.map((_, i) => i).filter(i => !exclude.includes(i) && lens[i] > 0);
-      if (avail.length > 0) return avail[Math.floor(Math.random() * avail.length)];
-      // Degenerate fallback (many paths unmeasurable): reuse any measurable route.
-      // At least one exists — the effect bails earlier if all lengths are 0.
-      const measurable = ROUTES.map((_, i) => i).filter(i => lens[i] > 0);
-      return measurable[Math.floor(Math.random() * measurable.length)];
+    // Extend only genuine map exits. Road terminals fade on the painted road
+    // instead of inventing a straight road through blank artwork.
+    const extend=(point:typeof raw[number],direction:number)=>{
+     if(point.x<=-30||point.x>=ARTWORK_WIDTH+30||point.y<=-30||point.y>=ARTWORK_HEIGHT+30)return point;
+     const dx=Math.cos(point.angle)*direction,dy=Math.sin(point.angle)*direction;
+     const distances=[dx>0?(ARTWORK_WIDTH+30-point.x)/dx:dx<0?(-30-point.x)/dx:Infinity,dy>0?(ARTWORK_HEIGHT+30-point.y)/dy:dy<0?(-30-point.y)/dy:Infinity];
+     const d=Math.max(0,Math.min(...distances.filter(n=>n>=0)));
+     return {...point,x:point.x+dx*d,y:point.y+dy*d};
     };
+    if(!directionalStartTerminal)raw.unshift(extend(raw[0],-1));
+    if(!directionalEndTerminal)raw.push(extend(raw[raw.length-1],1));
 
-    // Initial: 4 distinct routes, trucks staggered mid-route for instant screen presence
-    const trucks: TruckState[] = [];
-    for (let i = 0; i < TRUCKS.length; i++) {
-      const route = pickRoute(trucks.map(t => t.route));
-      trucks.push({ route, dur: Math.max(lens[route] / SPEED, MIN_DUR), t0: 0, phase: 'drive' });
+    const cumulative=[0];
+    for(let i=1;i<raw.length;i++)cumulative.push(cumulative[i-1]+Math.hypot(raw[i].x-raw[i-1].x,raw[i].y-raw[i-1].y));
+    const total=cumulative.at(-1)!,positionCount=Math.ceil(total/1.5)+1;let j=1;
+    let positions=Array.from({length:positionCount},(_,i)=>{
+     const d=i/(positionCount-1)*total;
+     while(j<cumulative.length-1&&cumulative[j]<d)j++;
+     const f=(d-cumulative[j-1])/(cumulative[j]-cumulative[j-1]||1);
+     return {x:raw[j-1].x+(raw[j].x-raw[j-1].x)*f,y:raw[j-1].y+(raw[j].y-raw[j-1].y)*f};
+    });
+    // Repeated binomial filtering rounds polyline corners without materially
+    // moving the centerline. A wider tangent window then gives continuous
+    // truck rotation instead of snapping at individual trace vertices.
+    for(let pass=0;pass<SMOOTHING_PASSES;pass++)positions=positions.map((p,i)=>{
+     if(i===0||i===positions.length-1)return p;
+     const a=positions[i-1],b=positions[i+1];
+     return {x:(a.x+4*p.x+b.x)/6,y:(a.y+4*p.y+b.y)/6};
+    });
+    const headings=positions.map((_,i)=>{const a=positions[Math.max(0,i-8)],b=positions[Math.min(positions.length-1,i+8)];return Math.atan2(b.y-a.y,b.x-a.x);});
+    const curvature=headings.map((_,i)=>{
+     const lo=Math.max(0,i-12),hi=Math.min(headings.length-1,i+12);
+     const span=Math.max(1,Math.hypot(positions[hi].x-positions[lo].x,positions[hi].y-positions[lo].y));
+     return Math.abs(angleDelta(headings[lo],headings[hi]))/span;
+    });
+    const points=positions.map((p,i)=>{
+     // Look ahead roughly 35 map units so braking starts before the bend.
+     let upcoming=0;
+     for(let k=Math.max(0,i-4);k<=Math.min(curvature.length-1,i+24);k++)upcoming=Math.max(upcoming,curvature[k]);
+     return {...p,angle:headings[i],speedLimit:Math.max(CURVE_MIN_SPEED,SPEED/(1+22*upcoming))};
+    });
+    lanes.push({id:road.id+(reverse?'-reverse':'-forward'),road:road.id,sharedGroup:road.sharedGroup,direction:reverse?-1:1,rightOffset:road.laneOffset??LANE_OFFSET,points,length:total,fadeStart:directionalStartTerminal,fadeEnd:directionalEndTerminal});
+   }
+  });
+
+  // Build the intersection graph from the traced geometry itself. If two
+  // different routes touch or cross, only one may occupy that physical
+  // corridor at a time. This keeps scheduling correct when a path is edited
+  // without requiring another list of hand-maintained intersection names.
+  const centerlines=lanes.filter(lane=>lane.direction===1);
+  const conflicts=new Set<string>();
+  const conflictKey=(a:string,b:string)=>a<b?`${a}|${b}`:`${b}|${a}`;
+  for(let i=0;i<centerlines.length;i++)for(let j=i+1;j<centerlines.length;j++){
+   const a=centerlines[i],b=centerlines[j];let touches=false;
+   for(let ai=0;ai<a.points.length&&!touches;ai+=6)for(let bi=0;bi<b.points.length;bi+=6){
+    const dx=a.points[ai].x-b.points[bi].x,dy=a.points[ai].y-b.points[bi].y;
+    if(dx*dx+dy*dy<24*24){touches=true;break;}
+   }
+   if(touches)conflicts.add(conflictKey(a.road,b.road));
+  }
+
+  const debugLanes=svg.querySelector<SVGGElement>('[data-debug-lanes]');
+  if(debugLanes){
+   debugLanes.replaceChildren(...lanes.filter(lane=>lane.direction===1).map(lane=>{const line=document.createElementNS('http://www.w3.org/2000/svg','polyline');line.dataset.debugLane=lane.id;line.setAttribute('points',lane.points.filter((_,i)=>i%5===0).map(point=>`${point.x},${point.y}`).join(' '));line.setAttribute('class','debug-lane center');return line;}));
+  }
+
+  const groups=[...svg.querySelectorAll<SVGGElement>('[data-truck]')];
+  const trucks:TruckState[]=groups.map(()=>({trip:null,visits:lanes.map(()=>0),retry:0,last:-1}));
+  let time=0,previous=0,raf=0,visible=true;
+  const motion=matchMedia('(prefers-reduced-motion: reduce)');
+
+  const canUseRoad=(lane:Lane)=>{
+   const active=trucks.flatMap(truck=>truck.trip?[truck.trip]:[]);
+   if(active.some(trip=>trip.lane.road!==lane.road&&conflicts.has(conflictKey(lane.road,trip.lane.road))))return false;
+   const occupants=active.filter(trip=>trip.lane.road===lane.road);
+   if(occupants.length>=2)return false;
+   if(!occupants.length)return true;
+   // Narrow artwork roads remain single-file. Wider roads allow exactly one
+   // opposing pair; a third truck and same-direction following are rejected.
+   if(lane.rightOffset<PASSABLE_OFFSET||occupants[0].lane.direction===lane.direction)return false;
+   const existing=occupants[0],existingCanonical=existing.lane.direction===1?existing.distance/existing.lane.length:1-existing.distance/existing.lane.length;
+   const candidateStart=lane.direction===1?0:1;
+   return Math.abs(existingCanonical-candidateStart)*Math.min(existing.lane.length,lane.length)>PASS_BEGIN+35;
+  };
+
+  function frame(now:number){
+   const dt=previous?Math.min(.05,(now-previous)/1000):0;previous=now;
+   if(!motion.matches)time+=dt;
+
+   trucks.forEach(truck=>{
+    if(truck.trip&&truck.trip.distance>=truck.trip.lane.length)truck.trip=null;
+    if(!truck.trip&&time>=truck.retry){
+     const active=trucks.flatMap(item=>item.trip?[item.trip]:[]);
+     const candidates=lanes.map((_,k)=>k).filter(k=>k!==truck.last).sort((a,b)=>truck.visits[a]-truck.visits[b]||Math.random()-.5);
+     const index=candidates.find(k=>{
+      const lane=lanes[k];
+      if(!canUseRoad(lane))return false;
+      // An opposing truck on this same road is handled by the passing model.
+      // Other roads retain the conservative intersection reservation test.
+      return canDispatch(lane,time,active.filter(trip=>trip.lane.road!==lane.road));
+     });
+     if(index!==undefined){
+      const lane=lanes[index];
+      truck.trip={lane,start:time,end:time+lane.length/PASS_SPEED+2,distance:0,speed:SPEED,offset:0};
+      truck.visits[index]++;truck.last=index;
+     }
+     truck.retry=time+.5;
     }
+   });
 
-    let raf = 0;
-    let inited = false;
+   const passWeights=new Map<MovingTrip,number>();
+   for(let i=0;i<trucks.length;i++)for(let j=i+1;j<trucks.length;j++){
+    const a=trucks[i].trip,b=trucks[j].trip;
+    if(!a||!b||a.lane.road!==b.lane.road||a.lane.direction===b.lane.direction)continue;
+    const aCanonical=a.lane.direction===1?a.distance/a.lane.length:1-a.distance/a.lane.length;
+    const bCanonical=b.lane.direction===1?b.distance/b.lane.length:1-b.distance/b.lane.length;
+    const gap=Math.abs(aCanonical-bCanonical)*Math.min(a.lane.length,b.lane.length);
+    const weight=passingWeight(gap);
+    passWeights.set(a,Math.max(passWeights.get(a)??0,weight));
+    passWeights.set(b,Math.max(passWeights.get(b)??0,weight));
+   }
 
-    const step = (now: number) => {
-      if (!inited) {
-        trucks.forEach(ts => {
-          ts.t0 = now - (0.15 + Math.random() * 0.5) * ts.dur * 1000;
-        });
-        inited = true;
-      }
+   trucks.forEach((truck,i)=>{
+    const group=groups[i],trip=truck.trip;
+    if(!trip){group.setAttribute('opacity','0');return;}
+    const pass=passWeights.get(trip)??0;
+    const speedPose=sample(trip.lane,trip.distance);
+    const targetSpeed=Math.min(speedPose.speedLimit,SPEED-(SPEED-PASS_SPEED)*pass);
+    const targetOffset=trip.lane.rightOffset*pass;
+    trip.speed=approach(trip.speed,targetSpeed,(targetSpeed<trip.speed?24:10)*dt);
+    trip.offset=approach(trip.offset,targetOffset,14*dt);
+    trip.distance=Math.min(trip.lane.length,trip.distance+trip.speed*dt);
 
-      trucks.forEach((ts, i) => {
-        const g = truckRefs.current[i];
-        const path = pathRefs.current[ts.route];
-        if (!g || !path) return;
+    const pose=sample(trip.lane,trip.distance);
+    const x=pose.x-Math.sin(pose.angle)*trip.offset,y=pose.y+Math.cos(pose.angle)*trip.offset;
+    let opacity=1;
+    if(trip.lane.fadeStart)opacity=Math.min(1,trip.distance/55);
+    if(trip.lane.fadeEnd)opacity=Math.min(1,Math.max(0,(trip.lane.length-trip.distance)/70));
+    group.setAttribute('transform',`translate(${x} ${y}) rotate(${pose.angle*180/Math.PI})`);
+    group.setAttribute('opacity',String(opacity));
+    group.dataset.route=trip.lane.id;group.dataset.road=trip.lane.road;group.dataset.distance=String(trip.distance);group.dataset.speed=String(trip.speed);group.dataset.speedLimit=String(speedPose.speedLimit);group.dataset.offset=String(trip.offset);group.dataset.phase=pass>.05?'passing':opacity===0?'offscreen':'drive';
+   });
 
-        if (ts.phase === 'wait') {
-          if (now < ts.t0) {
-            g.setAttribute('opacity', '0');
-            return;
-          }
-          ts.phase = 'drive';
-        }
+   if(visible&&!document.hidden&&!motion.matches)raf=requestAnimationFrame(frame);
+  }
 
-        const p = (now - ts.t0) / (ts.dur * 1000);
-        if (p >= 1) {
-          // Route finished — respawn on a random route not in use by any truck
-          const others = trucks.filter((_, j) => j !== i).map(t => t.route);
-          const next = pickRoute([ts.route, ...others]);
-          ts.route = next;
-          ts.dur = Math.max(lens[next] / SPEED, MIN_DUR);
-          ts.t0 = now + 400 + Math.random() * 1200; // brief gap before re-entry
-          ts.phase = 'wait';
-          g.setAttribute('opacity', '0');
-          return;
-        }
+  const restart=()=>{cancelAnimationFrame(raf);previous=0;if(visible&&!document.hidden)raf=requestAnimationFrame(frame);};
+  const observer=new IntersectionObserver(([entry])=>{visible=entry.isIntersecting;restart();});
+  observer.observe(sectionRef.current!);
+  document.addEventListener('visibilitychange',restart);motion.addEventListener('change',restart);restart();
+  return()=>{cancelAnimationFrame(raf);observer.disconnect();document.removeEventListener('visibilitychange',restart);motion.removeEventListener('change',restart);};
+ },[]);
 
-        const len = lens[ts.route];
-        const dist = p * len;
-        const pt = path.getPointAtLength(dist);
-        const a = path.getPointAtLength(Math.max(0, dist - 1.5));
-        const b = path.getPointAtLength(Math.min(len, dist + 1.5));
-        const ang = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
-        g.setAttribute('transform', `translate(${pt.x} ${pt.y}) rotate(${ang})`);
-
-        // Opacity: soft fade-in on entry; smooth fade-out approaching a hub
-        const tSec = (now - ts.t0) / 1000;
-        let op = Math.min(1, tSec / FADE_IN);
-        if (ROUTES[ts.route].hub) {
-          const remain = ts.dur - tSec;
-          op = Math.min(op, Math.max(0, remain / FADE_OUT));
-        }
-        g.setAttribute('opacity', op.toFixed(3));
-      });
-
-      raf = requestAnimationFrame(step);
-    };
-
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
-  return (
-    <div id="freight-map" ref={containerRef} style={{ height }} className="relative w-full scroll-mt-16 overflow-hidden flex items-center justify-center bg-[#0B1929]">
-
-      {/* Keep the image and routes in one frame so zooming preserves alignment. */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={getMapFrame(mapSize, framing, zoom)}>
-      <div
-        className="absolute inset-0 bg-[length:100%_100%] bg-center"
-        style={{
-          backgroundImage: "url(/citymap.png)",
-          filter: "grayscale(1) invert(1) brightness(0.86) contrast(1.14)",
-        }}
-      />
-      <div className="absolute inset-0 bg-[#0B1929]/42" />
-
-      <svg
-        className="absolute inset-0 w-full h-full"
-        viewBox="0 -75.284 1200 750.568"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <defs>
-          <radialGradient id="mapGlow" cx="50%" cy="50%" r="55%">
-            <stop offset="0%" stopColor="#219EBC" stopOpacity="0.18" />
-            <stop offset="70%" stopColor="#219EBC" stopOpacity="0.06" />
-            <stop offset="100%" stopColor="#219EBC" stopOpacity="0" />
-          </radialGradient>
-          {(['r', 'g', 'p', 'y'] as const).map(id => (
-            <filter key={id} id={`glow-${id}`} x="-150%" y="-150%" width="400%" height="400%">
-              <feGaussianBlur stdDeviation="3.5" result="b" />
-              <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-            </filter>
-          ))}
-        </defs>
-
-        <rect width="1200" height="600" fill="url(#mapGlow)" />
-
-        {/* Invisible route geometry — measured via getPointAtLength each frame */}
-        {ROUTES.map((r, i) => (
-          <path
-            key={r.id}
-            ref={el => { pathRefs.current[i] = el; }}
-            d={r.d}
-            fill="none"
-            stroke="none"
-          />
-        ))}
-
-        {/* 4 trucks — positions driven by the rAF loop above */}
-        {TRUCKS.map((t, i) => (
-          <g
-            key={t.id}
-            ref={el => { truckRefs.current[i] = el; }}
-            filter={`url(#glow-${t.id})`}
-            opacity="0"
-          >
-            <TruckBody fill={t.fill} dark={t.dark} win="rgba(255,255,255,0.35)" />
-          </g>
-        ))}
-      </svg>
-      </div>
-
-      {/* Section headline + body */}
-      <div className="relative z-10 text-center px-4 max-w-3xl">
-        <h2 className="text-4xl md:text-6xl font-display font-bold text-white mb-6 uppercase tracking-tight">
-          {t('beamHeadline')}
-        </h2>
-        <p className="text-lg md:text-xl text-gray-300 font-sans leading-relaxed">
-          {t('beamBody')}
-        </p>
-      </div>
-    </div>
-  );
+ return <section ref={sectionRef} id="freight-map" data-testid="freight-map" className="freight-scene" style={height===undefined?undefined:{height}}>
+  <div className="freight-frame" style={getMapFrame(mapSize,framing,zoom)}>
+   <svg ref={svgRef} data-testid="freight-map-svg" viewBox="0 0 1586 992" preserveAspectRatio="none" aria-hidden="true">
+    <image href="/citymap.png" width="1586" height="992" style={{filter:'grayscale(1) invert(1) brightness(.86) contrast(1.14)'}}/>
+    <rect width="1586" height="992" fill="#0b1929" opacity=".42"/>
+    <defs>{FREIGHT_ROADS.map(road=><path key={road.id} data-road={road.id} d={road.d}/>)}</defs>
+    {debug&&<g className="freight-debug" data-debug-lanes/>}
+    {COLORS.map((color,i)=><g key={color} data-truck={i} opacity="0">{debug&&<rect className="debug-footprint" x="-11" y="-5" width="22" height="10"/>}<rect x="-9" y="-3" width="11" height="6" rx="1" fill={color}/><rect x="3" y="-3" width="6" height="6" rx="1" fill={color}/><path d="M7 -2v4" stroke="#dbeafe" strokeWidth="1.5"/><path d="M-7 -4h3M-7 4h3M5 -4h2M5 4h2" stroke="#17202b" strokeWidth="1.5"/></g>)}
+   </svg>
+  </div>
+  <div className="freight-copy"><h2>{t('beamHeadline')}</h2><p>{t('beamBody')}</p></div>
+ </section>;
 }

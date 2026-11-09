@@ -67,7 +67,7 @@ export default function Home() {
 
       </section>
       {/* Section B - Animated Route Beam */}
-      <AnimatedBeam height={900} framing="cover" zoom={1} />
+      <AnimatedBeam framing="cover" zoom={1} />
       {/* Section C - Services Cards */}
       <section className="py-24 bg-background">
         <div className="container mx-auto px-4 md:px-8">
