@@ -1,54 +1,483 @@
-// Centerlines traced in the artwork's native 1586 x 992 coordinate space.
-// The marked 624 x 195 client reference is a centered cover crop of the same
-// bitmap (scale 624 / 1586, visible artwork y = 248.19..743.81). Keeping the
-// bitmap and geometry in this one coordinate system makes every responsive
-// crop use exactly the same roads.
-export type FreightRoad={id:string;d:string;terminalStart?:boolean;terminalEnd?:boolean;laneOffset?:number;sharedGroup?:string};
-const traced=(points:readonly (readonly [number,number])[])=>`M ${points.map(([x,y])=>`${x} ${y}`).join(' L ')}`;
-export const FREIGHT_ROADS:readonly FreightRoad[] = [
- {id:'lavender',d:'M 180 220 C 145 255 108 292 74 332 C 50 361 24 389 -35 420',laneOffset:3.5},
- {id:'red',d:'M 65 220 C 82 282 116 350 178 407 C 236 461 301 505 369 545 C 448 592 519 629 570 688 C 600 717 624 752 642 790 C 653 850 653 930 650 1022',terminalStart:true,laneOffset:5,sharedGroup:'left-shared'},
- {id:'blue',d:'M 208 220 C 196 288 198 356 219 408 C 248 474 312 520 399 564 C 484 607 536 648 570 688 C 600 717 624 752 642 790 C 653 850 653 930 650 1022',terminalStart:true,laneOffset:5,sharedGroup:'left-shared'},
- {id:'teal',d:traced([[0,770],[24,778],[43,784],[62,790],[82,797],[101,803],[119,809],[138,815],[156,821],[187,822],[203,816],[221,809],[239,802],[255,796],[273,789],[292,782],[312,774],[328,768],[349,760],[374,752],[388,745],[406,738],[424,731],[445,723],[463,716],[482,709],[500,702],[518,695],[539,687],[562,670],[569,640],[569,620],[569,599],[569,579],[569,559],[569,539],[569,519],[569,499],[569,479],[569,459],[569,439],[569,419],[569,399],[569,379],[570,357],[594,355],[614,355],[634,355],[654,355],[674,355],[697,355],[714,355],[734,355],[754,355],[774,355],[794,355],[814,355],[834,355],[854,355],[874,355],[894,355],[914,355],[934,355],[954,355],[974,355],[994,355],[1014,355],[1035,355],[1053,355],[1068,355],[1088,338],[1089,317],[1089,297],[1089,277],[1089,257],[1089,237],[1089,219]]),terminalEnd:true,laneOffset:4.5,sharedGroup:'left-shared'},
- {id:'light-orange',d:traced([[890,0],[888,20],[879,30],[872,39],[864,48],[857,56],[849,66],[841,75],[834,83],[825,94],[817,104],[810,111],[802,121],[794,130],[786,140],[779,148],[771,157],[763,167],[756,175],[747,185],[740,193],[733,203],[725,211],[717,221],[709,230],[701,239],[698,250],[698,263],[698,275],[698,287],[698,299],[698,311],[698,323],[698,335],[698,347],[697,356],[698,370],[698,382],[698,394],[698,406],[698,418],[698,430],[698,442],[698,454],[698,466],[698,478],[697,490],[698,502],[698,514],[698,526],[698,538],[698,550],[698,562],[697,574]]),terminalEnd:true,laneOffset:2.5},
- {id:'dark-orange',d:traced([[1174,223],[1179,238],[1181,243],[1177,280],[1179,298],[1181,316],[1183,334],[1184,354],[1185,374],[1184,400],[1183,423],[1182,437],[1180,457],[1177,480],[1174,498],[1169,522],[1169,540],[1162,557],[1153,577],[1145,594],[1136,611],[1127,628],[1117,647],[1107,665],[1098,682],[1093,701],[1079,718],[1070,735],[1060,753],[1051,770],[1042,787],[1032,806],[1023,823],[1014,840],[1003,860],[995,875],[986,892],[976,911],[967,928],[957,947],[947,965],[938,982],[934,991]]),terminalStart:true,sharedGroup:'bottom-shared'},
- {id:'yellow',d:traced([[1341,225],[1332,241],[1323,258],[1314,275],[1305,293],[1296,310],[1286,328],[1277,345],[1268,362],[1258,380],[1249,398],[1240,415],[1230,433],[1221,451],[1211,469],[1202,487],[1193,505],[1184,522],[1170,537],[1163,555],[1154,575],[1146,592],[1136,611],[1127,628],[1118,645],[1107,665],[1098,682],[1093,701],[1079,718],[1070,735],[1060,753],[1051,770],[1042,787],[1032,806],[1023,823],[1014,840],[1003,860],[995,875],[986,892],[976,911],[967,928],[957,947],[947,965],[938,982],[934,991]]),terminalStart:true,sharedGroup:'bottom-shared'},
- {id:'green',d:'M 1185 220 C 1209 315 1251 386 1322 428 C 1405 477 1511 507 1620 550',terminalStart:true,sharedGroup:'right-shared'},
- {id:'magenta',d:traced([[1350,218],[1352,238],[1349,260],[1348,280],[1349,301],[1350,320],[1352,337],[1357,362],[1363,382],[1371,401],[1381,418],[1393,451],[1402,456],[1424,468],[1443,477],[1461,485],[1479,493],[1497,501],[1515,509],[1534,518],[1550,525],[1570,534],[1580,539],[1585,541]]),terminalStart:true,laneOffset:4.5,sharedGroup:'right-shared'},
- {id:'purple',d:traced([[934,991],[939,980],[950,960],[959,943],[969,924],[978,907],[987,890],[997,872],[1007,853],[1016,836],[1025,819],[1034,802],[1044,783],[1053,766],[1062,749],[1071,733],[1080,716],[1093,701],[1113,694],[1131,685],[1150,677],[1170,671],[1190,667],[1209,665],[1228,665],[1255,669],[1279,681],[1294,689],[1309,703],[1323,721],[1332,737],[1341,757],[1348,777],[1353,796],[1359,817],[1363,836],[1367,853],[1371,871],[1376,893],[1380,911],[1386,930],[1393,950],[1401,968],[1410,985],[1413,991]]),sharedGroup:'bottom-shared'},
- {id:'light-blue',d:traced([[934,991],[939,980],[950,960],[959,943],[969,924],[978,907],[987,890],[997,872],[1007,853],[1016,836],[1025,819],[1034,802],[1044,783],[1053,766],[1062,749],[1071,733],[1080,716],[1093,701],[1113,694],[1131,685],[1150,677],[1170,671],[1190,667],[1209,665],[1228,665],[1255,669],[1270,697],[1262,713],[1253,731],[1244,749],[1239,759]]),terminalEnd:true,laneOffset:4.5,sharedGroup:'bottom-shared'},
+// Geometry supplied in animation/road-network.json and verified against its SVG.
+// The source is the middle 508px strip of citymap.png, starting at y=246.
+export const ARTWORK_WIDTH = 1586,
+  ARTWORK_HEIGHT = 508,
+  CROP_Y = 246;
+export const TRUCK_SCALE = (1586 / 1200) * 0.6;
+type Point = { x: number; y: number };
+export type Pose = Point & {
+  angle: number;
+  time: number;
+  distance: number;
+  speed: number;
+};
+export type Lane = {
+  id: string;
+  road: string;
+  segments: string[];
+  points: Pose[];
+  length: number;
+  duration: number;
+  fadeStart: boolean;
+  fadeEnd: boolean;
+};
+export type Trip = { lane: Lane; start: number };
+const SEGMENTS: Record<string, number[][]> = {
+  "seg-01": [
+    [101.8, 50.0],
+    [77.2, 76.5],
+    [19.1, 137.5],
+    [0.3, 159.4],
+  ],
+  "seg-02": [
+    [101.8, 50.0],
+    [80.8, 18.8],
+    [77.4, 14.4],
+    [73.5, 10.5],
+    [65.5, 0.2],
+  ],
+  "seg-03": [
+    [101.8, 50.0],
+    [137.0, 14.1],
+    [153.3, 0.0],
+  ],
+  "seg-04": [
+    [101.8, 50.0],
+    [115.7, 71.4],
+    [135.3, 99.4],
+    [153.7, 123.8],
+    [171.0, 144.6],
+    [182.6, 157.8],
+    [191.1, 165.8],
+    [198.8, 171.4],
+    [211.7, 177.3],
+  ],
+  "seg-05": [
+    [211.7, 177.3],
+    [212.9, 165.1],
+    [212.2, 155.9],
+    [210.7, 148.6],
+    [203.7, 125.3],
+    [200.3, 110.7],
+    [197.4, 93.7],
+    [196.2, 78.1],
+    [196.2, 54.1],
+    [197.7, 36.6],
+    [200.3, 21.6],
+    [206.1, 0.2],
+  ],
+  "seg-06": [
+    [211.7, 177.3],
+    [221.3, 190.3],
+    [231.2, 202.2],
+    [244.7, 216.7],
+    [259.0, 230.5],
+    [272.1, 242.2],
+    [287.1, 254.4],
+    [303.8, 267.1],
+    [322.3, 280.3],
+    [342.6, 294.1],
+    [363.3, 306.9],
+    [454.1, 358.2],
+    [502.5, 386.2],
+    [536.3, 406.2],
+    [560.7, 422.5],
+  ],
+  "seg-07": [
+    [560.7, 422.5],
+    [553.9, 430.4],
+    [549.9, 434.2],
+    [540.5, 439.8],
+    [530.3, 444.3],
+    [387.8, 498.8],
+    [377.1, 501.9],
+    [347.6, 507.9],
+  ],
+  "seg-08": [
+    [697.0, 109.0],
+    [585.0, 109.3],
+    [579.5, 109.9],
+    [574.9, 111.5],
+    [572.4, 113.2],
+    [569.9, 117.0],
+    [568.4, 123.8],
+    [568.0, 135.5],
+    [567.9, 389.9],
+    [567.5, 397.8],
+    [566.1, 407.4],
+    [564.5, 412.8],
+    [560.7, 422.5],
+  ],
+  "seg-09": [
+    [560.7, 422.5],
+    [580.1, 440.3],
+    [593.5, 455.1],
+    [603.8, 469.1],
+    [615.7, 488.4],
+    [628.6, 507.7],
+  ],
+  "seg-10": [
+    [697.0, 109.0],
+    [697.0, 303.2],
+    [696.4, 337.3],
+  ],
+  "seg-11": [
+    [697.0, 109.0],
+    [1052.4, 109.0],
+    [1066.3, 108.6],
+    [1075.5, 107.2],
+    [1078.7, 106.0],
+    [1081.5, 104.3],
+    [1084.8, 100.8],
+    [1086.9, 96.2],
+    [1088.4, 89.0],
+    [1089.0, 75.2],
+    [1089.0, 31.1],
+    [1088.1, 0.1],
+  ],
+  "seg-12": [
+    [697.0, 109.0],
+    [697.1, 0.1],
+  ],
+  "seg-13": [
+    [1095.2, 452.0],
+    [1084.8, 464.4],
+    [1079.3, 472.1],
+    [1058.4, 508.0],
+  ],
+  "seg-14": [
+    [1175.3, 274.3],
+    [1162.5, 308.4],
+    [1147.5, 342.3],
+    [1138.3, 360.6],
+    [1102.3, 428.0],
+    [1098.2, 438.2],
+    [1095.2, 452.0],
+  ],
+  "seg-15": [
+    [1276.3, 435.7],
+    [1272.0, 430.9],
+    [1269.1, 428.5],
+    [1257.3, 424.0],
+    [1248.2, 421.7],
+    [1236.8, 420.0],
+    [1225.2, 419.1],
+    [1213.6, 419.1],
+    [1200.0, 419.8],
+    [1180.9, 422.5],
+    [1160.8, 427.7],
+    [1139.7, 435.2],
+    [1110.7, 448.1],
+    [1095.2, 452.0],
+  ],
+  "seg-16": [
+    [1183.3, 14.7],
+    [1179.1, 28.3],
+    [1178.5, 32.0],
+    [1178.1, 41.5],
+    [1182.2, 79.9],
+    [1184.3, 105.2],
+    [1185.0, 125.1],
+    [1184.8, 153.2],
+    [1183.6, 174.8],
+    [1181.4, 198.1],
+    [1173.4, 258.6],
+    [1173.5, 264.2],
+    [1175.3, 274.3],
+  ],
+  "seg-17": [
+    [1261.5, 128.0],
+    [1193.7, 255.8],
+    [1186.6, 266.2],
+    [1182.4, 269.7],
+    [1175.3, 274.3],
+  ],
+  "seg-18": [
+    [1183.3, 14.7],
+    [1183.3, 0.0],
+  ],
+  "seg-19": [
+    [1183.3, 14.7],
+    [1194.7, 23.0],
+    [1200.3, 30.1],
+    [1204.9, 38.1],
+    [1220.5, 70.1],
+    [1231.8, 89.6],
+    [1239.1, 100.8],
+    [1245.9, 110.1],
+    [1253.0, 118.9],
+    [1261.5, 128.0],
+  ],
+  "seg-20": [
+    [1276.3, 435.7],
+    [1272.6, 445.3],
+    [1253.6, 483.4],
+    [1239.8, 508.0],
+  ],
+  "seg-21": [
+    [1261.5, 128.0],
+    [1318.0, 21.4],
+    [1330.9, 0.1],
+  ],
+  "seg-22": [
+    [1261.5, 128.0],
+    [1273.0, 139.4],
+    [1287.8, 152.0],
+    [1303.3, 163.3],
+    [1317.7, 172.4],
+    [1337.6, 182.9],
+    [1363.1, 194.7],
+    [1375.7, 198.9],
+    [1389.7, 201.7],
+  ],
+  "seg-23": [
+    [1276.3, 435.7],
+    [1284.5, 438.0],
+    [1289.4, 440.2],
+    [1300.0, 448.5],
+    [1309.8, 458.3],
+    [1316.0, 465.8],
+    [1322.6, 475.2],
+    [1341.4, 507.8],
+  ],
+  "seg-24": [
+    [1389.7, 201.7],
+    [1386.9, 187.7],
+    [1384.4, 180.7],
+    [1381.3, 173.8],
+    [1369.8, 152.4],
+    [1362.7, 135.2],
+    [1357.2, 117.4],
+    [1352.5, 97.2],
+    [1349.5, 76.3],
+    [1348.1, 50.8],
+    [1348.5, 28.9],
+    [1350.7, 0.1],
+  ],
+  "seg-25": [
+    [1389.7, 201.7],
+    [1404.8, 211.6],
+    [1423.1, 221.5],
+    [1557.0, 282.3],
+    [1565.3, 286.4],
+    [1571.4, 290.4],
+    [1585.8, 298.3],
+  ],
+};
+// Signed segment numbers give continuous, complete client routes, not random turns.
+export const ROUTES = [
+  { id: "lavender", segments: [-3, 1] },
+  { id: "red", segments: [-2, 4, 6, 9] },
+  { id: "blue", segments: [-5, 6, 9] },
+  { id: "teal", segments: [-7, -8, 11] },
+  { id: "light-orange", segments: [-12, 10], terminal: true },
+  { id: "dark-orange", segments: [-18, 16, 14, 13] },
+  { id: "yellow", segments: [-21, 17, 14, 13] },
+  { id: "green", segments: [-18, 19, 22, 25] },
+  { id: "magenta", segments: [-24, 25] },
+  { id: "purple", segments: [-13, -15, 23] },
+  { id: "light-blue", segments: [-13, -15, 20] },
 ];
-
-export const ARTWORK_WIDTH=1586;
-export const ARTWORK_HEIGHT=992;
-export const LANE_OFFSET=5.5;
-export const SPEED=40;
-
-export type Pose={x:number;y:number;angle:number;speedLimit:number};
-export type Lane={id:string;road:string;sharedGroup?:string;direction:1|-1;rightOffset:number;points:Pose[];length:number;fadeStart:boolean;fadeEnd:boolean};
-
-export function sample(lane:Lane,distance:number):Pose {
- const t=Math.max(0,Math.min(lane.points.length-1,distance/lane.length*(lane.points.length-1)));
- const i=Math.min(Math.floor(t),lane.points.length-2),f=t-i,a=lane.points[i],b=lane.points[i+1];
- const turn=Math.atan2(Math.sin(b.angle-a.angle),Math.cos(b.angle-a.angle));
- return {x:a.x+(b.x-a.x)*f,y:a.y+(b.y-a.y)*f,angle:a.angle+turn*f,speedLimit:a.speedLimit+(b.speedLimit-a.speedLimit)*f};
+const delta = (a: number, b: number) =>
+  Math.atan2(Math.sin(b - a), Math.cos(b - a));
+function resample(points: Point[], spacing = 1): Point[] {
+  const ds = [0];
+  for (let i = 1; i < points.length; i++)
+    ds.push(
+      ds[i - 1] +
+        Math.hypot(
+          points[i].x - points[i - 1].x,
+          points[i].y - points[i - 1].y,
+        ),
+    );
+  const count = Math.ceil(ds.at(-1)! / spacing),
+    out: Point[] = [];
+  let j = 1;
+  for (let i = 0; i <= count; i++) {
+    const d = (i / count) * ds.at(-1)!;
+    while (j < ds.length - 1 && ds[j] < d) j++;
+    const f = (d - ds[j - 1]) / (ds[j] - ds[j - 1] || 1);
+    out.push({
+      x: points[j - 1].x + (points[j].x - points[j - 1].x) * f,
+      y: points[j - 1].y + (points[j].y - points[j - 1].y) * f,
+    });
+  }
+  return out;
 }
 
-// Oriented truck footprints, padded for clearance and temporal sampling.
-export function overlaps(a:Pose,b:Pose) {
- return [a.angle,a.angle+Math.PI/2,b.angle,b.angle+Math.PI/2].every(angle=>{
-  const radius=(p:Pose)=>11*Math.abs(Math.cos(p.angle-angle))+5*Math.abs(Math.sin(p.angle-angle));
-  return Math.abs((a.x-b.x)*Math.cos(angle)+(a.y-b.y)*Math.sin(angle))<radius(a)+radius(b);
- });
+// Blend the approach and departure at junctions over a useful steering distance.
+// A tangent-matched cubic removes the tight kink where independently traced
+// segments meet. Apply to positions, so rotation and collision prediction follow
+// the same curve rather than rotating the truck early on a still-straight path.
+function roundJunctions(points: Point[]): Point[] {
+  const junctions = [
+    { x: 1183.3, y: 14.7 },
+    { x: 1175.3, y: 274.3 },
+    { x: 1389.7, y: 201.7 },
+    { x: 1095.2, y: 452 },
+  ];
+  let result = points;
+  for (const junction of junctions) {
+    let nearest = 0;
+    for (let i = 1; i < result.length; i++) {
+      if (Math.hypot(result[i].x-junction.x,result[i].y-junction.y) <
+          Math.hypot(result[nearest].x-junction.x,result[nearest].y-junction.y)) nearest = i;
+    }
+    if (Math.hypot(result[nearest].x-junction.x,result[nearest].y-junction.y)>2) continue;
+    const start = Math.max(6, nearest-28), end = Math.min(result.length-7, nearest+28);
+    if (end-start<30) continue;
+    const a=result[start], b=result[end];
+    const tangent=(lo:number,hi:number)=>{
+      const dx=result[hi].x-result[lo].x,dy=result[hi].y-result[lo].y,length=Math.hypot(dx,dy);
+      return {x:dx/length,y:dy/length};
+    };
+    const incoming=tangent(start-6,start),outgoing=tangent(end,end+6);
+    const handle=Math.hypot(b.x-a.x,b.y-a.y)/3;
+    const c={x:a.x+incoming.x*handle,y:a.y+incoming.y*handle};
+    const d={x:b.x-outgoing.x*handle,y:b.y-outgoing.y*handle};
+    const curve=Array.from({length:end-start+1},(_,i)=>{
+      const t=i/(end-start),u=1-t;
+      return {x:u*u*u*a.x+3*u*u*t*c.x+3*u*t*t*d.x+t*t*t*b.x,
+              y:u*u*u*a.y+3*u*u*t*c.y+3*u*t*t*d.y+t*t*t*b.y};
+    });
+    result=resample([...result.slice(0,start),...curve,...result.slice(end+1)]);
+  }
+  return result;
 }
-
-export type Trip={lane:Lane;start:number;end:number};
-
-export function canDispatch(lane:Lane,now:number,active:Trip[]) {
- const end=now+lane.length/SPEED+1.2;
- return active.every(trip=>{
-  for(let t=Math.max(now,trip.start);t<=Math.min(end,trip.end);t+=.08)
-   if(overlaps(sample(lane,(t-now)*SPEED),sample(trip.lane,(t-trip.start)*SPEED)))return false;
-  return true;
- });
+export function buildLanes(): Lane[] {
+  return ROUTES.flatMap((road) =>
+    [false, true].map((reverse) => {
+      let raw: Point[] = [];
+      for (const signed of road.segments) {
+        const key = "seg-" + String(Math.abs(signed)).padStart(2, "0");
+        let pts = SEGMENTS[key].map(([x, y]) => ({ x, y }));
+        if (signed < 0) pts.reverse();
+        raw.push(...(raw.length ? pts.slice(1) : pts));
+      }
+      if (reverse) raw.reverse();
+      const fadeStart = !!road.terminal && reverse,
+        fadeEnd = !!road.terminal && !reverse;
+      // Extend beyond the cropped artwork only. Never invent visible roads.
+      const extend = (p: Point, q: Point) => {
+        const d = Math.hypot(p.x - q.x, p.y - q.y);
+        return {
+          x: p.x + ((p.x - q.x) / d) * 80,
+          y: p.y + ((p.y - q.y) / d) * 80,
+        };
+      };
+      if (!fadeStart) raw.unshift(extend(raw[0], raw[1]));
+      if (!fadeEnd) raw.push(extend(raw.at(-1)!, raw.at(-2)!));
+      let center = roundJunctions(resample(raw));
+      // Local smoothing is bounded to the supplied trace, not a global curve fit.
+      for (let k = 0; k < 32; k++)
+        center = center.map((p, i) =>
+          i === 0 || i === center.length - 1
+            ? p
+            : {
+                x: (center[i - 1].x + 4 * p.x + center[i + 1].x) / 6,
+                y: (center[i - 1].y + 4 * p.y + center[i + 1].y) / 6,
+              },
+        );
+      const heading = (pts: Point[], i: number) => {
+        const a = pts[Math.max(0, i - 8)],
+          b = pts[Math.min(pts.length - 1, i + 8)];
+        return Math.atan2(b.y - a.y, b.x - a.x);
+      };
+      // Fixed right-hand lane center, including on bends. No passing-sideways model.
+      const lane = resample(
+        center.map((p, i) => {
+          const a = heading(center, i);
+          return { x: p.x - Math.sin(a) * 3, y: p.y + Math.cos(a) * 3 };
+        }),
+      );
+      const angles = lane.map((_, i) => heading(lane, i));
+      const speeds = angles.map((a, i) => {
+        const bend =
+          Math.abs(
+            delta(
+              angles[Math.max(0, i - 8)],
+              angles[Math.min(angles.length - 1, i + 8)],
+            ),
+          ) / 16;
+        return Math.max(
+          18,
+          Math.min(40, Math.sqrt(24 / Math.max(0.001, bend))),
+        );
+      });
+      // Acceleration-limited profile, shared exactly by animation and prediction.
+      for (let i = speeds.length - 2; i >= 0; i--)
+        speeds[i] = Math.min(speeds[i], Math.sqrt(speeds[i + 1] ** 2 + 24));
+      for (let i = 1; i < speeds.length; i++)
+        speeds[i] = Math.min(speeds[i], Math.sqrt(speeds[i - 1] ** 2 + 16));
+      let distance = 0,
+        time = 0;
+      const points = lane.map((p, i) => {
+        if (i) {
+          const d = Math.hypot(p.x - lane[i - 1].x, p.y - lane[i - 1].y);
+          distance += d;
+          time += (2 * d) / (speeds[i] + speeds[i - 1]);
+        }
+        return { ...p, angle: angles[i], distance, time, speed: speeds[i] };
+      });
+      return {
+        id: road.id + (reverse ? "-reverse" : "-forward"),
+        road: road.id,
+        segments: road.segments.map((s) => String(Math.abs(s))),
+        points,
+        length: distance,
+        duration: time,
+        fadeStart,
+        fadeEnd,
+      };
+    }),
+  );
+}
+export function sample(lane: Lane, time: number): Pose {
+  const pts = lane.points;
+  time = Math.max(0, Math.min(lane.duration, time));
+  let lo = 0,
+    hi = pts.length - 1;
+  while (hi - lo > 1) {
+    const m = (lo + hi) >> 1;
+    if (pts[m].time <= time) lo = m;
+    else hi = m;
+  }
+  const a = pts[lo],
+    b = pts[hi],
+    f = (time - a.time) / (b.time - a.time || 1);
+  return {
+    x: a.x + (b.x - a.x) * f,
+    y: a.y + (b.y - a.y) * f,
+    angle: a.angle + delta(a.angle, b.angle) * f,
+    time,
+    distance: a.distance + (b.distance - a.distance) * f,
+    speed: a.speed + (b.speed - a.speed) * f,
+  };
+}
+export function overlaps(a: Pose, b: Pose, padding = 3): boolean {
+  return [a.angle, a.angle + Math.PI / 2, b.angle, b.angle + Math.PI / 2].every(
+    (angle) => {
+      const radius = (p: Pose) =>
+        (18 * TRUCK_SCALE + padding) * Math.abs(Math.cos(p.angle - angle)) +
+        (8 * TRUCK_SCALE + padding) * Math.abs(Math.sin(p.angle - angle));
+      return (
+        Math.abs(
+          (a.x - b.x) * Math.cos(angle) + (a.y - b.y) * Math.sin(angle),
+        ) <
+        radius(a) + radius(b)
+      );
+    },
+  );
+}
+export function canDispatch(lane: Lane, now: number, active: Trip[]): boolean {
+  return active.every((trip) => {
+    // Original-size trucks do not fit abreast on these narrow painted roads.
+    // Reserve shared physical segments for the trip instead of forcing a pass.
+    if (lane.segments.some((s) => trip.lane.segments.includes(s))) return false;
+    const end = Math.min(now + lane.duration, trip.start + trip.lane.duration);
+    for (let t = now; t <= end + 0.1; t += 0.1)
+      if (overlaps(sample(lane, t - now), sample(trip.lane, t - trip.start)))
+        return false;
+    return true;
+  });
 }
